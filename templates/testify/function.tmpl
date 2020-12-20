@@ -1,18 +1,3 @@
-{{define "assertion" -}}
-tt.assertion(t, {{if .OnlyReturnsError}}{{template "call" .}}{{else}}err{{end}}
-{{- if or (not .Subtests) .PrintInputs -}}
-    , fmt.Sprintf("{{template "message" .}}", {{template "inputs" .}})
-{{- end -}}
-)
-{{- end}}
-
-
-{{define "equal"}}assert.Equal{{if or (not .Subtests) .PrintInputs}}f{{end}}{{end}}
-
-
-{{define "msg"}}{{if or (not .Subtests) .PrintInputs}} , "{{template "message" .}}", {{template "inputs" .}}{{end}}{{end}} 
-
-
 {{define "function"}}
 {{- $f := .}}
 
@@ -51,7 +36,7 @@ func {{.TestName}}(t *testing.T) {
 			{{Want .}} {{.Type}}
 		{{- end}}
 		{{- if .ReturnsError}}
-			assertion assert.ErrorAssertionFunc
+			wantErr bool
 		{{- end}}
 	}{
 		// TODO: Add test cases.
@@ -80,18 +65,23 @@ func {{.TestName}}(t *testing.T) {
 				{{template "results" $f}} {{template "call" $f}}
 			{{- end}}
 			{{- if .ReturnsError}}
-                {{template "assertion" $f}}
+				if {{if .OnlyReturnsError}} err := {{template "call" $f}}; {{end}} (err != nil) != tt.wantErr {
+					t.Errorf("{{template "message" $f}} error = %v, wantErr %v", {{template "inputs" $f}} err, tt.wantErr)
+					{{- if .TestResults}}
+						{{if .Subtests }}return{{else}}continue{{end}}
+					{{- end}}
+				}
 			{{- end}}
 			{{- range .TestResults}}
 				{{- if .IsWriter}}
-                    {{template "equal" $f}}(t, tt.{{Want .}}, {{Param .}}.String(){{template "msg" $f}})
+					if {{Got .}} := {{Param .}}.String(); {{Got .}} != tt.{{Want .}} {
+				{{- else if .IsBasicType}}
+					if {{if $f.OnlyReturnsOneValue}}{{Got .}} := {{template "inline" $f}}; {{end}} {{Got .}} != tt.{{Want .}} {
 				{{- else}}
-                    {{- if $f.OnlyReturnsOneValue}}
-                        {{template "equal" $f}}(t, tt.{{Want .}}, {{template "inline" $f}}{{template "msg" $f}})
-                    {{- else}}
-                        {{template "equal" $f}}(t, tt.{{Want .}}, {{Got .}}{{template "msg" $f}})
-                    {{- end}}
+					if {{if $f.OnlyReturnsOneValue}}{{Got .}} := {{template "inline" $f}}; {{end}} !reflect.DeepEqual({{Got .}}, tt.{{Want .}}) {
 				{{- end}}
+				t.Errorf("{{template "message" $f}} {{if $f.ReturnsMultiple}}{{Got .}} {{end}}= %v, want %v", {{template "inputs" $f}} {{Got .}}, tt.{{Want .}})
+				}
 			{{- end}}
 		{{- if .Subtests }} }) {{- end -}}
 	}
