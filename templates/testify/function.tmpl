@@ -1,33 +1,51 @@
 {{define "assertionCall" -}}
     {{- if .OnlyReturnsError}}
         if tt.assertionResults != nil {
-            tt.assertionResults(t, {{if .OnlyReturnsError}}{{template "call" .}}{{else}}err{{end}}
-            {{- if or (not .Subtests) .PrintInputs -}}
-                , fmt.Sprintf("{{template "message" .}}", {{template "inputs" .}})
-            {{- end -}}
-            )
+        tt.assertionResults(t, {{template "fieldsAsFunctionCallParameter" .}}  {{template "argsAsFunctionCallParameter" .}} {{if .OnlyReturnsError}}{{template "call" .}}{{else}}err{{end}}
+        {{- if or (not .Subtests) .PrintInputs -}}
+            , fmt.Sprintf("{{template "message" .}}", {{template "inputs" .}})
+        {{- end -}}
+        )
         }
     {{- else}}
         if tt.assertionResults != nil {
-            tt.assertionResults(t,
-            {{- if and (not .OnlyReturnsError) (not .OnlyReturnsOneValue)}}
-                {{range $i, $el :=  .Results}}
-                    {{if (not $i)}}got, {{else}} got{{$i}}, {{end}}
-                {{end}}
-                {{- if .ReturnsError}}
-                    err,
-                {{- end}}
+        tt.assertionResults(t, {{template "fieldsAsFunctionCallParameter" .}}  {{template "argsAsFunctionCallParameter" .}}
+        {{- if and (not .OnlyReturnsError) (not .OnlyReturnsOneValue)}}
+            {{range $i, $el :=  .Results}}
+                {{if (not $i)}}got, {{else}} got{{$i}}, {{end}}
+            {{end}}
+            {{- if .ReturnsError}}
+                err,
             {{- end}}
-            {{- if and (not .OnlyReturnsError) .OnlyReturnsOneValue}}
-                {{template "inline" .}},
-            {{- end}}
-            )
+        {{- end}}
+        {{- if and (not .OnlyReturnsError) .OnlyReturnsOneValue}}
+            {{template "inline" .}},
+        {{- end}}
+        )
         }
     {{- end}}
 {{- end}}
 
+
+{{define "fieldsAsFunctionParameter" -}}
+    {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}}   *fields,  {{- end}} {{- end}} {{- end}}
+{{- end}}
+
+{{define "argsAsFunctionParameter" -}}
+    {{- if .TestParameters}}   *args, {{- end}}
+{{- end}}
+
+{{define "fieldsAsFunctionCallParameter" -}}
+    {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}} &tt.fields,  {{- end}} {{- end}} {{- end}}
+{{- end}}
+
+{{define "argsAsFunctionCallParameter" -}}
+    {{- if .TestParameters}} &tt.args, {{- end}}
+{{- end}}
+
+
 {{define "assertionFnType" -}}
-    type assertionResultsfn func(*testing.T,
+    type assertionResultsfn func(*testing.T,  {{template "fieldsAsFunctionParameter" .}}  {{template "argsAsFunctionParameter" .}}
     {{- range .TestResults}}
         {{.Type}},
     {{- end}}
@@ -37,25 +55,8 @@
     ) bool
 {{- end}}
 
-{{define "fieldsAsFunctionParameter" -}}
-    {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}} f *fields,  {{- end}} {{- end}} {{- end}}
-{{- end}}
-
-{{define "argsAsFunctionParameter" -}}
-    {{- if .TestParameters}} a *args {{- end}}
-{{- end}}
-
-{{define "fieldsAsFunctionCallParameter" -}}
-    {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}} &tt.fields,  {{- end}} {{- end}} {{- end}}
-{{- end}}
-
-{{define "argsAsFunctionCallParameter" -}}
-    {{- if .TestParameters}} &tt.args {{- end}}
-{{- end}}
-
-
 {{define "beforeCallType" -}}
-    type beforeCallFn func(t *testing.T, {{template "fieldsAsFunctionParameter" .}}  {{template "argsAsFunctionParameter" .}}  )
+    type beforeCallFn func( *testing.T, {{template "fieldsAsFunctionParameter" .}}  {{template "argsAsFunctionParameter" .}}  )
 {{- end}}
 
 
@@ -173,5 +174,4 @@
     {{- if .Subtests }} }) {{- end -}}
     }
     }
-
 {{end}}
