@@ -1,11 +1,29 @@
-{{define "assertion" -}}
-    if tt.assertionResults != nil {
-    tt.assertionResults(t, {{if .OnlyReturnsError}}{{template "call" .}}{{else}}err{{end}}
-    {{- if or (not .Subtests) .PrintInputs -}}
-        , fmt.Sprintf("{{template "message" .}}", {{template "inputs" .}})
-    {{- end -}}
-    )
-    }
+{{define "assertionCall" -}}
+    {{- if .OnlyReturnsError}}
+        if tt.assertionResults != nil {
+            tt.assertionResults(t, {{if .OnlyReturnsError}}{{template "call" .}}{{else}}err{{end}}
+            {{- if or (not .Subtests) .PrintInputs -}}
+                , fmt.Sprintf("{{template "message" .}}", {{template "inputs" .}})
+            {{- end -}}
+            )
+        }
+    {{- else}}
+        if tt.assertionResults != nil {
+            tt.assertionResults(t,
+            {{- if and (not .OnlyReturnsError) (not .OnlyReturnsOneValue)}}
+                {{range $i, $el :=  .Results}}
+                    {{if (not $i)}}got, {{else}} got{{$i}}, {{end}}
+                {{end}}
+                {{- if .ReturnsError}}
+                    err,
+                {{- end}}
+            {{- end}}
+            {{- if and (not .OnlyReturnsError) .OnlyReturnsOneValue}}
+                {{template "inline" .}},
+            {{- end}}
+            )
+        }
+    {{- end}}
 {{- end}}
 
 
@@ -134,27 +152,7 @@
         {{template "results" $f}} {{template "call" $f}}
     {{- end}}
 
-
-    {{- if .OnlyReturnsError}}
-        {{template "assertion" $f}}
-    {{- else}}
-        if tt.assertionResults != nil {
-        tt.assertionResults(t,
-        {{- if and (not .OnlyReturnsError) (not .OnlyReturnsOneValue)}}
-            {{range $i, $el := $f.Results}}
-                {{if (not $i)}}got, {{else}} got{{$i}}, {{end}}
-            {{end}}
-            {{- if .ReturnsError}}
-                err,
-            {{- end}}
-        {{- end}}
-        {{- if and (not .OnlyReturnsError) .OnlyReturnsOneValue}}
-            {{template "inline" $f}},
-        {{- end}}
-        )
-        }
-    {{- end}}
-
+    {{template "assertionCall" $f}}
 
 
     {{- range .TestResults}}
