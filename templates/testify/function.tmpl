@@ -26,6 +26,16 @@
     {{- end}}
 {{- end}}
 
+{{define "assertionFnType" -}}
+    type assertionResultsfn func(*testing.T,
+    {{- range .TestResults}}
+        {{.Type}},
+    {{- end}}
+    {{- if .ReturnsError}}
+        error,
+    {{- end}}
+    ) bool
+{{- end}}
 
 {{define "fieldsAsFunctionParameter" -}}
     {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}} f *fields,  {{- end}} {{- end}} {{- end}}
@@ -87,15 +97,9 @@
     {{- end}}
 
 
-    type assertionResultsfn func(*testing.T,
-    {{- range .TestResults}}
-        {{.Type}},
-    {{- end}}
-    {{- if .ReturnsError}}
-        error,
-    {{- end}}
-    ) bool
 
+
+    {{template "assertionFnType" $f}}
     {{template "beforeCallType" $f}}
 
     type testType struct {
