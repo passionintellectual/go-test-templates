@@ -8,16 +8,35 @@
     }
 {{- end}}
 
+
+{{define "fieldsAsFunctionParameter" -}}
+    {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}} f *fields,  {{- end}} {{- end}} {{- end}}
+{{- end}}
+
+{{define "argsAsFunctionParameter" -}}
+    {{- if .TestParameters}} a *args {{- end}}
+{{- end}}
+
+{{define "fieldsAsFunctionCallParameter" -}}
+    {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}} &tt.fields,  {{- end}} {{- end}} {{- end}}
+{{- end}}
+
+{{define "argsAsFunctionCallParameter" -}}
+    {{- if .TestParameters}} &tt.args {{- end}}
+{{- end}}
+
+
 {{define "beforeCallType" -}}
-    type beforeCallFn func(t *testing.T,  {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}} f *fields,  {{- end}} {{- end}} {{- end}} {{- if .TestParameters}} a *args {{- end}})
+    type beforeCallFn func(t *testing.T, {{template "fieldsAsFunctionParameter" .}}  {{template "argsAsFunctionParameter" .}}  )
 {{- end}}
 
 
 {{define "beforeCall" -}}
     if tt.beforeCall != nil {
-        tt.beforeCall(t,  {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}} &tt.fields,  {{- end}} {{- end}} {{- end}} {{- if .TestParameters}} &tt.args {{- end}})
+    tt.beforeCall(t,   {{template "fieldsAsFunctionCallParameter" .}}  {{template "argsAsFunctionCallParameter" .}}  )
     }
 {{- end}}
+
 
 
 {{define "equal"}}assert.Equal{{if or (not .Subtests) .PrintInputs}}f{{end}}{{end}}
