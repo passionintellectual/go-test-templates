@@ -35,8 +35,17 @@ func {{.TestName}}(t *testing.T) {
 		{{- end}}
 	}
 	{{- end}}
-	tests := []struct {
+	type assertionResultsfn func(*testing.T,
+		{{- range .TestResults}}
+			{{.Type}},
+		{{- end}}
+		{{- if .ReturnsError}}
+			error,
+		{{- end}}
+	) bool
+	type testType struct {
 		name string
+
 		{{- with .Receiver}}
 			{{- if and .IsStruct .Fields}}
 				fields fields
@@ -50,10 +59,13 @@ func {{.TestName}}(t *testing.T) {
 		{{- range .TestResults}}
 			{{Want .}} {{.Type}}
 		{{- end}}
-		{{- if .ReturnsError}}
-			assertion assert.ErrorAssertionFunc
-		{{- end}}
-	}{
+{{/*		{{- if .ReturnsError}}*/}}
+{{/*			assertion assert.ErrorAssertionFunc*/}}
+{{/*		{{- end}}*/}}
+		assertionResults assertionResultsfn
+
+	}
+	tests := []testType{
 		// TODO: Add test cases.
 	}
 	for {{if (or .Subtests (not .IsNaked))}} _, tt := {{end}} range tests {
@@ -79,9 +91,25 @@ func {{.TestName}}(t *testing.T) {
 			{{- if and (not .OnlyReturnsError) (not .OnlyReturnsOneValue) }}
 				{{template "results" $f}} {{template "call" $f}}
 			{{- end}}
-			{{- if .ReturnsError}}
-                {{template "assertion" $f}}
-			{{- end}}
+{{/*			{{- if .ReturnsError}}*/}}
+{{/*                {{template "assertion" $f}}*/}}
+{{/*			{{- end}}*/}}
+			// assertionResults
+			tt.assertionResults(t,
+				{{- if and (not .OnlyReturnsError) (not .OnlyReturnsOneValue)}}
+					{{range $i, $el := $f.Results}}
+						{{if (not $i)}}got, {{else}} got{{$i}}, {{end}}
+					{{end}}
+				{{- end}}
+				{{- if and (not .OnlyReturnsError) .OnlyReturnsOneValue}}
+					 got,
+				{{- end}}
+				{{- if .ReturnsError}}
+					err,
+				{{- end}}
+			)
+			// end of assertionResults
+
 			{{- range .TestResults}}
 				{{- if .IsWriter}}
                     {{template "equal" $f}}(t, tt.{{Want .}}, {{Param .}}.String(){{template "msg" $f}})
