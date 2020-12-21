@@ -59,9 +59,7 @@ func {{.TestName}}(t *testing.T) {
 		{{- range .TestResults}}
 			{{Want .}} {{.Type}}
 		{{- end}}
-{{/*		{{- if .ReturnsError}}*/}}
-{{/*			assertion assert.ErrorAssertionFunc*/}}
-{{/*		{{- end}}*/}}
+
 		assertionResults assertionResultsfn
 
 	}
@@ -91,9 +89,7 @@ func {{.TestName}}(t *testing.T) {
 			{{- if and (not .OnlyReturnsError) (not .OnlyReturnsOneValue) }}
 				{{template "results" $f}} {{template "call" $f}}
 			{{- end}}
-{{/*			{{- if .ReturnsError}}*/}}
-{{/*                {{template "assertion" $f}}*/}}
-{{/*			{{- end}}*/}}
+
 			// assertionResults
 			tt.assertionResults(t,
 				{{- if and (not .OnlyReturnsError) (not .OnlyReturnsOneValue)}}
