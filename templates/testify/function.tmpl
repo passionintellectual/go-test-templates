@@ -8,9 +8,17 @@
     }
 {{- end}}
 
-{{define "beforeCall" -}}
-    type beforeCallFn func(t *testing.T, f *fields, a *args)
+{{define "beforeCallType" -}}
+    type beforeCallFn func(t *testing.T,  {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}} f *fields,  {{- end}} {{- end}} {{- end}} {{- if .TestParameters}} a *args {{- end}})
 {{- end}}
+
+
+{{define "beforeCall" -}}
+    if tt.beforeCall != nil {
+        tt.beforeCall(t,  {{- with .Receiver}}{{- if .IsStruct}}{{- if .Fields}} &tt.fields,  {{- end}} {{- end}} {{- end}} {{- if .TestParameters}} &tt.args {{- end}})
+    }
+{{- end}}
+
 
 {{define "equal"}}assert.Equal{{if or (not .Subtests) .PrintInputs}}f{{end}}{{end}}
 
@@ -51,7 +59,7 @@
     {{- end}}
     ) bool
 
-    {{template "beforeCall" $f}}
+    {{template "beforeCallType" $f}}
 
     type testType struct {
     name string
@@ -94,9 +102,9 @@
         {{- end}}
     {{- end}}
 
-    if tt.beforeCall != nil {
-        tt.beforeCall(t, &tt.fields, &tt.args)
-    }
+
+    {{template "beforeCall" $f}}
+
 
     {{- range .Parameters}}
         {{- if .IsWriter}}
